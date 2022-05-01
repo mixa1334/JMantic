@@ -18,6 +18,7 @@ import org.ostis.scmemory.model.pattern.pattern5.ScConstruction5;
 import org.ostis.scmemory.model.pattern.pattern5.ScPattern5;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -147,6 +148,17 @@ public interface ScMemory {
      * @since 0.6.0
      */
     Stream<Stream<? extends ScElement>> find(ScPattern pattern) throws ScMemoryException;
+
+    /**
+     * Method to search any sc-constructions by scs pattern.
+     *
+     * @param scsPattern {@link String} that store your scs pattern.
+     * @return stream of streams with found elements. Each nested stream store found sc-elements in sequence of a passed pattern.
+     * @since 0.6.3
+     */
+    Stream<Stream<? extends ScElement>> find(String scsPattern) throws ScMemoryException;
+
+    Stream<? extends ScElement> generate(String scsPattern, Map<String, Long> params) throws ScMemoryException;
 
     /**
      * Methods for changing the content of {@link ScLinkInteger}

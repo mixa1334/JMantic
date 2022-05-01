@@ -39,6 +39,8 @@ import org.ostis.scmemory.websocketmemory.memory.message.request.CheckScElTypeRe
 import org.ostis.scmemory.websocketmemory.memory.message.request.CreateScElRequestImpl;
 import org.ostis.scmemory.websocketmemory.memory.message.request.DeleteScElRequestImpl;
 import org.ostis.scmemory.websocketmemory.memory.message.request.FindByPatternRequestImpl;
+import org.ostis.scmemory.websocketmemory.memory.message.request.FindByScsPatternRequestImpl;
+import org.ostis.scmemory.websocketmemory.memory.message.request.GenerateByScsPatternRequestImpl;
 import org.ostis.scmemory.websocketmemory.memory.message.request.GetLinkContentRequestImpl;
 import org.ostis.scmemory.websocketmemory.memory.message.request.KeynodeRequestImpl;
 import org.ostis.scmemory.websocketmemory.memory.message.request.SetLinkContentRequestImpl;
@@ -62,6 +64,7 @@ import org.ostis.scmemory.websocketmemory.message.response.CheckScElTypeResponse
 import org.ostis.scmemory.websocketmemory.message.response.CreateScElResponse;
 import org.ostis.scmemory.websocketmemory.message.response.DeleteScElResponse;
 import org.ostis.scmemory.websocketmemory.message.response.FindByPatternResponse;
+import org.ostis.scmemory.websocketmemory.message.response.GenerateByPatternResponse;
 import org.ostis.scmemory.websocketmemory.message.response.GetLinkContentResponse;
 import org.ostis.scmemory.websocketmemory.message.response.KeynodeResponse;
 import org.ostis.scmemory.websocketmemory.message.response.SetLinkContentResponse;
@@ -302,6 +305,51 @@ public class SyncOstisScMemory implements ScMemory {
     public Stream<Stream<? extends ScElement>> find(ScPattern pattern) throws ScMemoryException {
         searchedScElements.clear();
         return findPattern(pattern);
+    }
+
+    @Override
+    public Stream<Stream<? extends ScElement>> find(String scsPattern) throws ScMemoryException {
+        FindByScsPatternRequestImpl request = new FindByScsPatternRequestImpl();
+        request.setScsPattern(scsPattern);
+        FindByPatternResponse response = requestSender.sendFindByPatternRequest(request);
+        List<List<ScElement>> result = new ArrayList<>();
+
+        for (Stream<Long> triplet : response.getFoundAddresses()
+                                            .toList()) {
+            List<ScElement> scElementList = new ArrayList<>();
+            Iterator<Long> addressesIterator = triplet.iterator();
+            while (addressesIterator.hasNext()) {
+                Long address = addressesIterator.next();
+                Object elementType = this.checkElementType(address);
+                ScElement element = this.createScElementByType(
+                        elementType,
+                        address);
+                scElementList.add(element);
+            }
+            result.add(scElementList);
+        }
+
+        return result.stream()
+                     .map(Collection::stream);
+    }
+
+    @Override
+    public Stream<? extends ScElement> generate(String scsPattern, Map<String, Long> params) throws ScMemoryException {
+        GenerateByScsPatternRequestImpl request = new GenerateByScsPatternRequestImpl();
+        request.setScsPattern(scsPattern);
+        request.setParams(params);
+        GenerateByPatternResponse response = requestSender.sendGenerateByPatternRequest(request);
+
+        List<ScElement> result = new ArrayList<>();
+        for (Long address : response.getGeneratedAddresses()
+                                    .toList()) {
+            Object elementType = this.checkElementType(address);
+            ScElement element = this.createScElementByType(
+                    elementType,
+                    address);
+            result.add(element);
+        }
+        return result.stream();
     }
 
     private Stream<Stream<? extends ScElement>> findPattern(ScPattern pattern) throws ScMemoryException {
